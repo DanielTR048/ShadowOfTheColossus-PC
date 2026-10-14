@@ -4,6 +4,8 @@
 #include <boost/container/static_vector.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include "common/assert.h"
 #include "common/debug.h"
@@ -173,6 +175,11 @@ Instance::Instance(Frontend::WindowSDL& window, s32 physical_device_index,
 
     CreateDevice();
     CollectPhysicalMemoryInfo();
+    if (std::getenv("SOTC_BUFFER_DIAG")) {
+        std::fprintf(stderr, "SOTC GPU: %s, driver=%s, memory budget=%.1f MiB\n",
+                     properties.deviceName.data(), GetDriverVersionName().c_str(),
+                     GetTotalMemoryBudget() / 1048576.0);
+    }
     CollectImageFormatInfo();
     CollectToolingInfo();
 }

@@ -20,7 +20,8 @@ Settings (environment variables, or sotc.ini beside this script as NAME=value li
     BB_GAMEPAD        the gamepad to use (its name or part of it), when several are connected
     key.<input>=Keys, pad.<input>=buttons   remap the controls (README.md, Controles)
 The image is prepared again only when the game, the modules or the scripts change.
-Extra arguments go to bb-probe.exe.
+--prepare-only prepares the image and patches without starting the game.
+Other extra arguments go to bb-probe.exe.
 """
 import hashlib
 import os
@@ -168,6 +169,10 @@ def main():
     if 'fps60' in modes.lower():
         # The game waits for vblanks: at 60 Hz an uncapped frame still rounds up to 30 FPS.
         env.setdefault('BB_VBLANK_HZ', '120')
+
+    if sys.argv[1:] == ['--prepare-only']:
+        print('Game image and patches prepared; no game process started.')
+        return 0
 
     probe = find_probe()
     # Development builds run from the MSYS2 tree: its CLANG64 DLLs (SDL3, FFmpeg, ...).

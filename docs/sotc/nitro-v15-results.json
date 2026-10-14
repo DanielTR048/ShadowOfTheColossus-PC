@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-14",
+  "window_from_first_present_seconds": [
+    40,
+    110
+  ],
+  "capture_process_seconds": 118,
+  "application_cache_initial_state": "empty",
+  "driver_cache": "not cleared",
+  "resolution_internal_and_output": "1920x1080",
+  "upscaling": false,
+  "fps60_patch": true,
+  "scope": "automatic opening only; not deterministic gameplay or stable 60 fps",
+  "repeatability": "reverse-order repeats failed before first presentation",
+  "runs": [
+    {
+      "run_id": "20261014-094257-305846-ab1-device",
+      "mode": "device",
+      "executable_sha256": "de21535bc50c7c085dde29cdffcc8388da03b26fe08a7cf26a08edad5bd30e09",
+      "summary": {
+        "exit_code": 1,
+        "stopped_at_time_limit": true,
+        "frames": 1330,
+        "intervals": 1329,
+        "window_seconds": 70,
+        "complete_window": true,
+        "average_fps": 19.0,
+        "measured_seconds": 68.820201,
+        "interval_average_fps": 19.311190329130252,
+        "one_percent_low_fps": 1.6937550115488686,
+        "p50_ms": 42.3135,
+        "p95_ms": 66.5011,
+        "p99_ms": 116.956,
+        "max_ms": 5767.123,
+        "over_16_67_ms_percent": 100.0,
+        "over_50_ms": 410,
+        "over_100_ms": 15
+      },
+      "approximate_telemetry_process_seconds_40_110": {
+        "process_cpu_percent_one_core_mean": 382.07714285714286,
+        "process_working_set_peak_mib": 4220.71484375,
+        "whole_gpu_utilization_mean_percent": 44.7887323943662,
+        "whole_gpu_memory_peak_mib": 4328.0,
+        "gpu_temperature_peak_c": 63.0
+      }
+    },
+    {
+      "run_id": "20261014-094504-204362-ab1-cached",
+      "mode": "cached",
+      "executable_sha256": "de21535bc50c7c085dde29cdffcc8388da03b26fe08a7cf26a08edad5bd30e09",
+      "summary": {
+        "exit_code": 1,
+        "stopped_at_time_limit": true,
+        "frames": 1551,
+        "intervals": 1550,
+        "window_seconds": 70,
+        "complete_window": true,
+        "average_fps": 22.15714285714286,
+        "measured_seconds": 69.97017220000001,
+        "interval_average_fps": 22.152296489560445,
+        "one_percent_low_fps": 4.342525256059037,
+        "p50_ms": 41.7419,
+        "p95_ms": 58.8046,
+        "p99_ms": 74.8591,
+        "max_ms": 1258.9577,
+        "over_16_67_ms_percent": 100.0,
+        "over_50_ms": 327,
+        "over_100_ms": 9
+      },
+      "approximate_telemetry_process_seconds_40_110": {
+        "process_cpu_percent_one_core_mean": 391.69428571428574,
+        "process_working_set_peak_mib": 4574.5703125,
+        "whole_gpu_utilization_mean_percent": 39.70422535211268,
+        "whole_gpu_memory_peak_mib": 4020.0,
+        "gpu_temperature_peak_c": 64.0
+      }
+    },
+    {
+      "run_id": "20261014-094811-591251-ab2-cached",
+      "mode": "cached",
+      "executable_sha256": "de21535bc50c7c085dde29cdffcc8388da03b26fe08a7cf26a08edad5bd30e09",
+      "summary": {
+        "exit_code": 3221225477,
+        "stopped_at_time_limit": false
+      }
+    },
+    {
+      "run_id": "20261014-094815-443813-ab2-device",
+      "mode": "device",
+      "executable_sha256": "de21535bc50c7c085dde29cdffcc8388da03b26fe08a7cf26a08edad5bd30e09",
+      "summary": {
+        "exit_code": 3221225477,
+        "stopped_at_time_limit": false
+      }
+    },
+    {
+      "run_id": "20261014-094906-728033-stability-cacheoff",
+      "mode": "device",
+      "executable_sha256": "de21535bc50c7c085dde29cdffcc8388da03b26fe08a7cf26a08edad5bd30e09",
+      "summary": {
+        "exit_code": 3221225477,
+        "stopped_at_time_limit": false
+      }
+    }
+  ]
+}

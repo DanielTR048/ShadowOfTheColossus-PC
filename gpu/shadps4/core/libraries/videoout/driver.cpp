@@ -22,6 +22,45 @@ extern std::unique_ptr<AmdGpu::Liverpool> liverpool;
 
 namespace Libraries::VideoOut {
 
+// Opt-in host flip timing for reproducible benchmarks. These intervals measure
+// presentation calls, not GPU execution time or physical display scanout.
+class FrameTrace {
+public:
+    FrameTrace() {
+        if (const char* path = std::getenv("SOTC_FRAME_CSV")) {
+            file = std::fopen(path, "w");
+            if (file) {
+                std::setvbuf(file, nullptr, _IOFBF, 65536);
+                std::fprintf(file, "elapsed_s,frame_ms\n");
+            } else {
+                std::fprintf(stderr, "SOTC frame trace: cannot open output file\n");
+            }
+        }
+    }
+    ~FrameTrace() { if (file) std::fclose(file); }
+    void Record() {
+        if (!file) return;
+        const auto now = std::chrono::steady_clock::now();
+        if (!started) {
+            first = previous = flushed = now;
+            started = true;
+            return;
+        }
+        std::fprintf(file, "%.6f,%.6f\n",
+                     std::chrono::duration<double>(now - first).count(),
+                     std::chrono::duration<double, std::milli>(now - previous).count());
+        previous = now;
+        if (now - flushed >= std::chrono::seconds(1)) {
+            std::fflush(file);
+            flushed = now;
+        }
+    }
+private:
+    std::FILE* file = nullptr;
+    bool started = false;
+    std::chrono::steady_clock::time_point first{}, previous{}, flushed{};
+};
+
 constexpr static bool Is32BppPixelFormat(PixelFormat format) {
     switch (format) {
     case PixelFormat::A8R8G8B8Srgb:
@@ -243,6 +282,9 @@ void VideoOutDriver::Flip(const Request& req) {
 
     // Present the frame.
     presenter->Present(req.frame);
+
+    static FrameTrace frame_trace;
+    frame_trace.Record();
 
     // sotc: SOTC_FPS=1 prints the flip rate every five seconds.
     static const bool fps_log = std::getenv("SOTC_FPS") != nullptr;

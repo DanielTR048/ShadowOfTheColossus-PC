@@ -1,5 +1,9 @@
 # Shadow of the Colossus — PC (port nativo / native port) · v0.56
 
+> **Fork experimental para o Acer Nitro V15 (RTX 4050):** meta de 1080p nativo / 60 fps,
+> ainda não atingida. Veja o [ensaio de buffers, resultados e execução isolada](docs/sotc/NITRO-V15.md).
+> O restante deste README descreve o projeto original.
+
 **[Português](#português)** · **[English](#english)** · [Releases](../../releases) · [Changelog](CHANGELOG.md)
 
 > **Nenhum arquivo do jogo nem da Sony está incluído / No game or Sony files are included.**

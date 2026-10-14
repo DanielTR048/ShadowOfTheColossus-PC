@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright 2024 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <cstdio>
+#include <cstdlib>
 #include <numeric>
+#include <string_view>
 
 #include "common/alignment.h"
 #include "common/assert.h"
@@ -31,12 +34,36 @@ std::string_view BufferTypeName(MemoryType type) {
     }
 }
 
+// Adapted from FelipePrado0/gow3_pc (af5930a), GPL-2.0-or-later. Only the
+// CPU-written stream ring changes placement; textures and GPU-written arenas do not.
+// Keep the upstream default until hardware measurements justify a different preset.
+enum class StreamPlacement { Device, Host, Cached };
+static StreamPlacement StreamMemory() {
+    static const StreamPlacement placement = [] {
+        const char* env = std::getenv("SOTC_STREAM_MEMORY");
+        const std::string_view value = env ? env : "device";
+        if (value == "cached") return StreamPlacement::Cached;
+        if (value == "host") return StreamPlacement::Host;
+        if (value != "device") {
+            std::fprintf(stderr, "SOTC_STREAM_MEMORY: invalid value, using device\n");
+        }
+        return StreamPlacement::Device;
+    }();
+    return placement;
+}
+
 [[nodiscard]] VkMemoryPropertyFlags MemoryUsagePreferredVmaFlags(MemoryType type) {
+    if (type == MemoryType::Stream && StreamMemory() == StreamPlacement::Cached) {
+        return VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+    }
     return type != MemoryType::DeviceLocal ? VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
                                            : VkMemoryPropertyFlagBits{};
 }
 
 [[nodiscard]] VmaAllocationCreateFlags MemoryUsageVmaFlags(MemoryType type) {
+    if (type == MemoryType::Stream && StreamMemory() == StreamPlacement::Cached) {
+        return VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+    }
     switch (type) {
     case MemoryType::HostUncached:
     case MemoryType::Stream:
@@ -51,6 +78,9 @@ std::string_view BufferTypeName(MemoryType type) {
 }
 
 [[nodiscard]] VmaMemoryUsage MemoryUsageVma(MemoryType type) {
+    if (type == MemoryType::Stream && StreamMemory() != StreamPlacement::Device) {
+        return VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+    }
     switch (type) {
     case MemoryType::DeviceLocal:
     case MemoryType::Stream:
@@ -155,6 +185,18 @@ Buffer::Buffer(const Vulkan::Instance& instance, VAddr cpu_addr_, u64 size_bytes
             mapped_data = std::span<u8>{std::bit_cast<u8*>(alloc_info.pMappedData), size_bytes};
         }
         is_coherent = property_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        if (mem_type == MemoryType::Stream && std::getenv("SOTC_BUFFER_DIAG")) {
+            const char* placement = StreamMemory() == StreamPlacement::Cached ? "cached" :
+                                    StreamMemory() == StreamPlacement::Host ? "host" : "device";
+            std::fprintf(stderr,
+                         "SOTC stream: requested=%s, size=%.1f MiB, memory_type=%u, "
+                         "device_local=%u, host_visible=%u, host_cached=%u, coherent=%u\n",
+                         placement, size_bytes / 1048576.0, alloc_info.memoryType,
+                         !!(property_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+                         !!(property_flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT),
+                         !!(property_flags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT),
+                         !!(property_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
+        }
     }
 }
 

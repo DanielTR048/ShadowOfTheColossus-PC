@@ -90,7 +90,9 @@ typedef void (*GpuRange)(uintptr_t address, uint64_t size);
 static GpuRange hook_map, hook_unmap, hook_invalidate;
 enum { HOOK_MAP, HOOK_UNMAP, HOOK_INVALIDATE };
 typedef struct { int kind; uintptr_t address; uint64_t size; } PendingHook;
-static PendingHook pending[64]; static size_t pending_count;
+/* A fragmented release/map replay can notify hundreds of ranges before unlocking.
+ * Keep bounded storage (96 KiB), without allocating while handling guest faults. */
+static PendingHook pending[LIMIT]; static size_t pending_count;
 static size_t allocations, maps, flexible_maps, protects, queries;
 static uint64_t live_bytes, flexible_bytes;
 
@@ -465,11 +467,11 @@ static ABI int32_t direct_map_named(void **out, uint64_t size, int prot, int fla
                                     uint64_t alignment, const char *name) {
     (void)name; return direct_map(out,size,prot,flags,physical,alignment);
 }
-static int32_t unmap_locked(uintptr_t start, uint64_t size) {
+static int32_t unmap_locked(uintptr_t start, uint64_t size, int notify_gpu) {
     if (start%PAGE || !size) return INVALID;
     uint64_t end=start+align_up(size,PAGE);
     for (size_t i=vma_index(start); i<vma_count && vmas[i].start<end; ++i)
-        if (vmas[i].kind!=KIND_RESERVED) {
+        if (notify_gpu && vmas[i].kind!=KIND_RESERVED) {
             uintptr_t a=vmas[i].start>start ? vmas[i].start : start, b=vmas[i].end<end ? vmas[i].end : end;
             queue_hook(HOOK_UNMAP,a,b-a);
         }
@@ -484,9 +486,9 @@ static ABI int32_t direct_unmap(void *address, uint64_t size) {
     /* The GPU forgets the range before it disappears (as shadPS4's early GPU unmap). */
     if (hook_unmap && !((uintptr_t)address%PAGE) && size) hook_unmap((uintptr_t)address,align_up(size,PAGE));
     write_lock();
-    size_t before=pending_count;
-    int32_t result=unmap_locked((uintptr_t)address,size);
-    pending_count=before; /* already notified above */
+    /* Already notified above: queuing then discarding per-VMA notifications can
+     * overflow the queue even though none of those notifications will be used. */
+    int32_t result=unmap_locked((uintptr_t)address,size,0);
     write_unlock();
     return result;
 }
@@ -501,7 +503,7 @@ static ABI int32_t direct_release(uint64_t start, uint64_t size) {
         uint64_t length=v.end-v.start;
         if (v.kind==KIND_DIRECT && v.phys<start+size && start<v.phys+length) {
             uint64_t a=v.phys>start ? v.phys : start, b=v.phys+length<start+size ? v.phys+length : start+size;
-            unmap_locked(v.start+(a-v.phys),b-a);
+            unmap_locked(v.start+(a-v.phys),b-a,1);
             i=vma_index(v.start);
             continue;
         }
@@ -636,7 +638,7 @@ static ABI int32_t batch_map2(BatchEntry *entries, int count, int *processed, in
         BatchEntry *e=&entries[done];
         switch (e->operation) {
         case 0: result=map_direct_locked(&e->start,e->length,(uint8_t)e->prot,flags,(int64_t)e->offset,0); break;
-        case 1: result=unmap_locked((uintptr_t)e->start,e->length); break;
+        case 1: result=unmap_locked((uintptr_t)e->start,e->length,1); break;
         case 2: result=protect_locked((uintptr_t)e->start,e->length,(uint8_t)e->prot,-1); break;
         case 3: result=map_flexible_locked(&e->start,e->length,(uint8_t)e->prot,flags); break;
         case 4: result=protect_locked((uintptr_t)e->start,e->length,(uint8_t)e->prot,e->type); break;

@@ -202,6 +202,19 @@ if (WIN32)
 endif()
 
 # Explicit test targets; neither launches the game nor needs a Vulkan device.
+add_executable(sotc-lod-stats-test EXCLUDE_FROM_ALL ../tests/test_sotc_lod_stats.cpp)
+target_compile_options(sotc-lod-stats-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(sotc-lod-stats-test PRIVATE shadps4)
+
+add_executable(gpu-hook-queue-test EXCLUDE_FROM_ALL ../tests/test_gpu_hook_queue.c)
+target_compile_options(gpu-hook-queue-test PRIVATE -UNDEBUG -Wall -Wextra -Werror
+                       -ffunction-sections -fdata-sections)
+target_link_options(gpu-hook-queue-test PRIVATE -Wl,--gc-sections)
+target_link_libraries(gpu-hook-queue-test PRIVATE -pthread)
+if (WIN32)
+    target_link_libraries(gpu-hook-queue-test PRIVATE onecore)
+endif()
+
 add_executable(motion-history-test EXCLUDE_FROM_ALL ../tests/test_motion_history.cpp)
 target_compile_options(motion-history-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(motion-history-test PRIVATE ..)

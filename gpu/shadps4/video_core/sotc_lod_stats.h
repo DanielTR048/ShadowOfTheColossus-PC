@@ -68,7 +68,9 @@ inline void Collect(u64 (&entries)[256]) {
         // drop their fine mips. SOTC_LOD_KEEP=1 reports them as sampled with no samples instead
         // (what the zeroed buffer said before; not soak-tested with the streaming).
         static const bool keep = std::getenv("SOTC_LOD_KEEP") != nullptr;
-        entries[i] = idle[i] < linger ? (level << 56) | (u64{std::max<u32>(last_count[i], 1)} << 32)
+        // A bank used in THIS report is active even with linger=0. Otherwise the
+        // default reports every texture unused and the game evicts live mips.
+        entries[i] = (n || idle[i] < linger) ? (level << 56) | (u64{std::max<u32>(last_count[i], 1)} << 32)
                      : keep           ? level << 56
                                       : u64{0xf} << 56;
     }
